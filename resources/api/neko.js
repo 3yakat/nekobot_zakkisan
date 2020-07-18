@@ -12,7 +12,7 @@ exports.handler = (event, context) => {
     let checkHeader = (event.headers || {})['x-line-signature'];
     console.log(event.headers);
     console.log(event.body);
-    let body = JSON.parse(event.body||"null");
+    let body = JSON.parse(event.body);
     const events = body.events;
     console.log(events);
 
