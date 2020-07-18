@@ -87,6 +87,5 @@ const messageFunc = (e) => {
     }
 
     console.log(`メッセージ：${userMessage}`);
-
     return message;
 };
