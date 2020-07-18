@@ -11,18 +11,29 @@ exports.handler = (event, context) => {
     let signature = crypto.createHmac('sha256', process.env.CHANNELSECRET).update(event.body).digest('base64');
     let checkHeader = (event.headers || {})['x-line-signature'];
     console.log(event.headers);
+    console.log(event.body);
     let body = JSON.parse(event.body);
     const events = body.events;
     console.log(events);
 
     if (signature === checkHeader) {
+//    if (signature !== checkHeader) {
         events.forEach(async (event) => {
 
             let message;
 
             switch (event.type) {
                 case "message":
-                    message = messageFunc(event);
+                    message = await messageFunc(event);
+                    console.log(message);
+                    client.replyMessage(body.events[0].replyToken, message).then((response) => {
+                      let lambdaResponse = {
+                        statusCode: 200,
+                        headers: { "X-Line-Status": "OK" },
+                        body: '{"result":"completed"}'
+                      };
+                      context.succeed(lambdaResponse);
+                    }).catch((err) => console.log(err));
                     break;
                 /*case "follow":
                     message = followFunc(event);
@@ -31,7 +42,7 @@ exports.handler = (event, context) => {
                     message = postbackFunc(event);
                     break;*/
             }
-
+/*
             if (message != undefined) {
                 client.replyMessage(body.events[0].replyToken, message)
                     .then((response) => {
@@ -43,6 +54,7 @@ exports.handler = (event, context) => {
                         context.succeed(lambdaResponse);
                     }).catch((err) => console.log(err));
             }
+*/
         });
     }
 
@@ -51,7 +63,7 @@ exports.handler = (event, context) => {
     }
 };
 
-const messageFunc = (e) => {
+const messageFunc = async (e) => {
 
     if (e.message.type != "text") {
         console.log("テキストではないメッセージが送られてきました");
@@ -71,21 +83,33 @@ const messageFunc = (e) => {
             type: "text",
             text: "Hello World"
         };
+        return message;
     } else if (userMessage == "おはよう") {
         message = {
             type: "text",
             text: "Good Morning!!"
         };
+        return message;
+    } else if (userMessage == "え") {
+        message = { type: "image", originalContentUrl: "https://i.gyazo.com/c837f8892589d7120c6a74a6c9441c4e.jpg", previewImageUrl: "https://i.gyazo.com/c837f8892589d7120c6a74a6c9441c4e.jpg" };
+        console.log(message);
+        return message;
     } else if (userMessage == "ねこ") {
-        const response = gyazoclient.list()
-        const gyazoimgUrl = response.data[0].url;
-        client.replyMessage(event.replyToken, {
-          type: 'image',
-          originalContentUrl: gyazoimgUrl,
-          previewImageUrl: gyazoimgUrl
+        await gyazoclient.list().then((res) => {
+          const gyazoimgUrl = res.data[0].url;
+          console.log(gyazoimgUrl);
+          message = { type: "image", originalContentUrl: gyazoimgUrl, previewImageUrl: gyazoimgUrl };
+          console.log(message);
+        }).catch((err) => {
+          console.log(err);
+          message = {
+            type: "text",
+            text: "Fail"
+          };
         });
+        return message;
+    } else {
+        console.log(`メッセージ：${userMessage}`);
+        return message;
     }
-
-    console.log(`メッセージ：${userMessage}`);
-    return message;
 };
